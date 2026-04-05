@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "BTC Price Tracker",
+  "version": "1.0",
+  "description": "Real-time Bitcoin (BTC) price tracker.",
+  "action": {
+    "default_title": "View BTC Price",
+    "default_popup": "popup.html"
+  },
+  "permissions": [
+    "storage"
+  ],
+  "host_permissions": [
+    "https://api.coingecko.com/*",
+    "https://query1.finance.yahoo.com/*",
+    "https://query2.finance.yahoo.com/*",
+    "https://api.allorigins.win/*"
+  ]
+}
