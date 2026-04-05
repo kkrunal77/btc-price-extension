@@ -1,6 +1,7 @@
 # 📈 Multi-Asset Market Dashboard Extension
 
-A high-performance Chrome extension providing real-time tracking and interactive candlestick charting for multiple financial assets. Monitor your favorite markets at a glance with a clean, vertical grid dashboard!
+![Dashboard Screenshot](screenshot.png)
+*A sleek, high-performance Chrome extension providing real-time tracking and interactive candlestick charting for multiple financial assets in a clean, vertical grid dashboard!*
 
 ## ✨ Features
 
