@@ -4,10 +4,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const refreshAllBtn = document.getElementById("refresh-all");
 
   const MARKETS = [
-    { ticker: "BTC-USD", name: "Bitcoin", symbol: "BTC" },
-    { ticker: "^NSEI", name: "Nifty 50", symbol: "NSEI" },
-    { ticker: "GC=F", name: "Gold Futures", symbol: "XAU" },
-    { ticker: "SI=F", name: "Silver Futures", symbol: "XAG" }
+    { ticker: "BTC-USD", name: "Bitcoin", symbol: "BTC", pair: "BTC/USD" },
+    { ticker: "GC=F", name: "Gold", symbol: "XAU", pair: "XAU/USD" },
+    { ticker: "^NSEI", name: "Nifty 50", symbol: "NIFTY", pair: "NIFTY" },
+    { ticker: "SI=F", name: "Silver", symbol: "XAG", pair: "XAG/USD" }
   ];
 
   // Store references to charts to update them instead of rebuilding
@@ -15,8 +15,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const formatPrice = (price) => {
     if (isNaN(price) || price === null) return "---";
-    // Adjust decimals based on magnitude
-    const decimals = price > 10000 ? 0 : 2;
+    const decimals = price > 10000 ? 2 : 2;
     return new Intl.NumberFormat('en-US', {
       minimumFractionDigits: decimals,
       maximumFractionDigits: decimals
@@ -31,13 +30,13 @@ document.addEventListener("DOMContentLoaded", () => {
     card.innerHTML = `
       <div class="card-header">
         <div class="asset-info">
-          <span class="asset-name">${asset.name}</span>
-          <span class="asset-symbol">${asset.symbol}</span>
+          <span class="asset-name">${asset.name.toUpperCase()} <span class="ticker-label">(${asset.pair})</span></span>
+          <div class="price-row">
+            <span class="asset-price" id="price-${asset.symbol}">Price: ---</span>
+            <span class="asset-change" id="change-${asset.symbol}">--%</span>
+          </div>
         </div>
-        <div class="price-info">
-          <div class="asset-price" id="price-${asset.symbol}">---</div>
-          <div class="asset-change" id="change-${asset.symbol}">--%</div>
-        </div>
+        <span class="chart-interval-label">1H Chart</span>
       </div>
       <div class="mini-chart" id="chart-${asset.symbol}"></div>
     `;
@@ -52,7 +51,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const fetchAssetData = async (asset) => {
     try {
-      // Use direct URL. Chrome extension permissions (host_permissions) will naturally bypass CORS locally!
       const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(asset.ticker)}?interval=15m&range=5d`;
       const response = await fetch(url);
       const data = await response.json();
@@ -102,11 +100,11 @@ document.addEventListener("DOMContentLoaded", () => {
       updateCardUI(asset, currentPrice, changePercent, candles);
     } catch (e) {
       console.error(`Failed loading ${asset.ticker}`, e);
-      // Display the actual error so we can debug it visually!
       const errorMsg = e.message.includes('fetch') ? 'Network/CORS Error' : 'Data Parse Error';
-      document.getElementById(`price-${asset.symbol}`).textContent = errorMsg;
-      document.getElementById(`price-${asset.symbol}`).style.fontSize = "0.7rem";
-      document.getElementById(`price-${asset.symbol}`).style.color = "#ef4444";
+      const priceEl = document.getElementById(`price-${asset.symbol}`);
+      priceEl.textContent = errorMsg;
+      priceEl.style.fontSize = "0.7rem";
+      priceEl.style.color = "#ff5252";
     }
   };
 
@@ -125,7 +123,8 @@ document.addEventListener("DOMContentLoaded", () => {
     
     // Update texts
     const sign = changePercent >= 0 ? "+" : "";
-    priceEl.textContent = asset.ticker === '^NSEI' ? formatPrice(currentPrice) : `$${formatPrice(currentPrice)}`;
+    const pricePrefix = asset.ticker === '^NSEI' ? '' : '$';
+    priceEl.textContent = `Price: ${pricePrefix}${formatPrice(currentPrice)}`;
     changeEl.textContent = `${sign}${changePercent.toFixed(2)}%`;
     changeEl.className = `asset-change ${changePercent >= 0 ? 'positive' : 'negative'}`;
 
@@ -134,28 +133,53 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!chartInstances[asset.symbol] && typeof LightweightCharts !== "undefined") {
       const chart = LightweightCharts.createChart(chartContainer, {
         width: chartContainer.clientWidth,
-        height: 120, // matching CSS
+        height: 140,
         layout: { 
           background: { type: 'solid', color: 'transparent' }, 
-          textColor: '#94a3b8' 
+          textColor: '#4a5670',
+          fontFamily: "'Inter', sans-serif",
+          fontSize: 10
         },
         grid: { 
           vertLines: { visible: false }, 
-          horzLines: { visible: false } 
+          horzLines: { color: 'rgba(255,255,255,0.03)', style: 1 } 
         },
-        timeScale: { visible: false },
-        rightPriceScale: { visible: false },
-        crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+        timeScale: { 
+          visible: true,
+          borderColor: 'rgba(255,255,255,0.06)',
+          timeVisible: true,
+          secondsVisible: false
+        },
+        rightPriceScale: { 
+          visible: true,
+          borderColor: 'rgba(255,255,255,0.06)',
+          scaleMargins: { top: 0.1, bottom: 0.1 }
+        },
+        crosshair: { 
+          mode: LightweightCharts.CrosshairMode.Normal,
+          vertLine: {
+            color: 'rgba(56, 189, 193, 0.3)',
+            width: 1,
+            style: 2,
+            labelBackgroundColor: '#1a2540'
+          },
+          horzLine: {
+            color: 'rgba(56, 189, 193, 0.3)',
+            width: 1,
+            style: 2,
+            labelBackgroundColor: '#1a2540'
+          }
+        },
         handleScroll: false,
         handleScale: false
       });
 
       const series = chart.addCandlestickSeries({
-        upColor: '#10b981',
-        downColor: '#ef4444',
+        upColor: '#00e676',
+        downColor: '#ff5252',
         borderVisible: false,
-        wickUpColor: '#10b981',
-        wickDownColor: '#ef4444'
+        wickUpColor: '#00e676',
+        wickDownColor: '#ff5252'
       });
       
       series.setData(candles);
@@ -186,6 +210,6 @@ document.addEventListener("DOMContentLoaded", () => {
   // Listeners
   refreshAllBtn.addEventListener("click", syncAllData);
   
-  // Poll every 10 seconds (closest thing to live without websocket multiplexing)
+  // Poll every 10 seconds
   setInterval(syncAllData, 10000);
 });
